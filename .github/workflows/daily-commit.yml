@@ -1,0 +1,25 @@
+name: Daily Commit
+
+on:
+  schedule:
+    - cron: '0 14 * * *'  # Runs at 2 PM UTC daily
+  workflow_dispatch:  # Allows manual trigger
+
+jobs:
+  create-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      
+      - name: Create daily commit
+        run: |
+          git config --global user.name "HomieeQuan"
+          git config --global user.email "middletaq@gmail.com"
+          echo "Daily update: $(date '+%Y-%m-%d %H:%M:%S')" >> daily_log.txt
+          git add daily_log.txt
+          git commit -m "Daily update: $(date '+%Y-%m-%d')"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
