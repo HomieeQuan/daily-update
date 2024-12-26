@@ -1,0 +1,62 @@
+name: Backfill Commits
+
+on:
+  workflow_dispatch:
+    inputs:
+      start_date:
+        description: 'Start date (YYYY-MM-DD)'
+        required: true
+        default: '2024-01-01'
+
+jobs:
+  backfill-commits:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      
+      - name: Create commits for past days
+        run: |
+          # Configure Git
+          git config --global user.name "HomieeQuan"
+          git config --global user.email "middletaq@gmail.com"
+          
+          # Get the start date from input
+          START_DATE=${{ github.event.inputs.start_date }}
+          
+          # Get today's date
+          TODAY=$(date +%Y-%m-%d)
+          
+          # Convert dates to seconds for comparison
+          START_DATE_SEC=$(date -d "$START_DATE" +%s)
+          TODAY_SEC=$(date -d "$TODAY" +%s)
+          
+          # Loop through each day
+          CURRENT_SEC=$START_DATE_SEC
+          while [ $CURRENT_SEC -le $TODAY_SEC ]; do
+            CURRENT_DATE=$(date -d "@$CURRENT_SEC" +%Y-%m-%d)
+            
+            # Create or update the daily log file with a random time between 9 AM and 5 PM
+            HOUR=$((9 + RANDOM % 9))  # Random hour between 9 and 17
+            MINUTE=$((RANDOM % 60))   # Random minute
+            TIME=$(printf "%02d:%02d:00" $HOUR $MINUTE)
+            
+            echo "Daily update: $CURRENT_DATE $TIME" >> daily_log.txt
+            
+            # Set the commit date to the past date
+            export GIT_AUTHOR_DATE="$CURRENT_DATE $TIME"
+            export GIT_COMMITTER_DATE="$CURRENT_DATE $TIME"
+            
+            # Commit
+            git add daily_log.txt
+            git commit -m "Daily update: $CURRENT_DATE"
+            
+            # Move to next day
+            CURRENT_SEC=$((CURRENT_SEC + 86400))  # 86400 seconds = 1 day
+          done
+          
+          # Push all commits
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
